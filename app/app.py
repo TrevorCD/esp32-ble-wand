@@ -24,7 +24,7 @@ import signal   # signal catching
 import curses   # terminal printing
 
 # Globals ----------------------------------------------------------------------
-
+resizes = 0
 # Handlers ---------------------------------------------------------------------
 
 # Helper functions -------------------------------------------------------------
@@ -33,23 +33,35 @@ import curses   # terminal printing
 # Main -------------------------------------------------------------------------
 
 def main(stdscr):
-
-    # curses setup
-    curses.noecho() # turns off automatic echoing of keys to screen
     
-    # maybe take CLA for size of device area, as in x centimeters of device
-    # movement translates to y characters on the terminal
-    
-    #terminal_columns = shutil.get_terminal_size().columns
-    #terminal_lines   = shutil.get_terminal_size().lines
-
-    #print(terminal_columns)
-    #print(terminal_lines)
-    
-    while(1):
-        #assert (terminal_columns != -1 and terminal_lines != -1)
-        
+    def resize_handler(signum, frame):
+        global resizes
+        size = shutil.get_terminal_size()
+        curses.resizeterm(size.lines, size.columns)
+        resizes += 1
+        stdscr.addstr(2, 0, f"resizes: {resizes}")
         stdscr.refresh()
+    # end resize_handler
+    signal.signal(signal.SIGWINCH, resize_handler)
+
+    
+    # curses extra setup
+    curses.noecho() # turns off automatic echoing of keys to screen
+    stdscr.nodelay(True) # makes getch() non-blocking
+    
+    # loop for catching bluetooth communication and updating screen
+    while(True):
+        # bluetooth comm
+
+        # update screen
+        stdscr.addstr(0, 0, str(curses.LINES))
+        stdscr.addstr(1, 0, str(curses.COLS))
+        stdscr.refresh()
+
+        key = stdscr.getch()
+        if key == ord('q'):
+            break
+        # endif
         
     #end while
     
