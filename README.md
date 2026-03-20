@@ -24,9 +24,8 @@ voltage: 3-5V
 * Python 3.14
   * bleak
   * shutil
+  * curses
 * BlueZ
-
-### Compilation
 
 ## ESP32
 
