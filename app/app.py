@@ -49,7 +49,7 @@ class Style:
 
 # Helper functions -------------------------------------------------------------
 
-async def bluetooth_connect() -> BLEDevice:
+async def bluetooth_connect() -> BleakClient:
     
     # find bluetooth device
     print(f"{Style.BOLD}Bluetooth devices available:\n{Style.RESET}")
@@ -58,7 +58,7 @@ async def bluetooth_connect() -> BLEDevice:
     for d in devices:
         print(f"{Style.BOLD}{i}: {Style.RESET}{d.address}: {Style.BOLD}{d.name}{Style.RESET}")
         i += 1
-
+        
     if i == 0:
         print(f"{Style.RED_BOLD}Failed to find any bluetooth devices{Style.RESET}")
         return None
@@ -93,6 +93,9 @@ async def bluetooth_connect() -> BLEDevice:
 # Main -------------------------------------------------------------------------
 
 async def main():
+
+    stdscr = None
+    client = None
     
     def resize_handler(signum, frame):
         size = shutil.get_terminal_size()
@@ -100,6 +103,19 @@ async def main():
         stdscr.refresh()
 
     signal.signal(signal.SIGWINCH, resize_handler)
+
+    def sigint_handler(signum, frame):
+        if stdscr != None:
+            curses.nocbreak()
+            stdscr.keypad(False)
+            #stdscr.nodelay(False)
+            curses.echo()
+            curses.endwin()
+        if client != None:
+            client.disconnect()
+        exit()
+
+    signal.signal(signal.SIGINT, sigint_handler)
     
     def keypress_q():
         curses.nocbreak()
@@ -107,11 +123,12 @@ async def main():
         #stdscr.nodelay(False)
         curses.echo()
         curses.endwin()
+        client.disconnect()
         exit()
 
     
-    device = await bluetooth_connect()
-    if device == None:
+    client = await bluetooth_connect()
+    if client == None:
         exit()
     
     # before starting curses, prompt for any key
