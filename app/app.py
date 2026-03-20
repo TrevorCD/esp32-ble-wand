@@ -19,15 +19,33 @@
 #-------------------------------------------------------------------------------
 
 import asyncio
+import os
 import bleak    # bluetooth lib
 import shutil   # shell utilities
 import signal   # signal catching
 import curses   # terminal printing
 
 # Globals ----------------------------------------------------------------------
-resizes = 0
+
+# Classes ----------------------------------------------------------------------
+class Style:
+    RED    = '\033[31m'
+    GREEN  = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE   = '\033[34m'
+    PURPLE = '\033[35m'
+    CYAN   = '\033[36m'
+    BOLD   = '\033[1m'
+    RESET  = '\033[0m'
 
 # Helper functions -------------------------------------------------------------
+
+def clear_screen():
+    if os.name == 'nt':
+        os.system('cls')
+    else:
+        os.system('clear')
+# end clear_screen
 
 
 # Main -------------------------------------------------------------------------
@@ -35,10 +53,8 @@ resizes = 0
 async def main():
     
     def resize_handler(signum, frame):
-        global resizes
         size = shutil.get_terminal_size()
         curses.resizeterm(size.lines, size.columns)
-        resizes += 1
         stdscr.addstr(2, 0, f"resizes: {resizes}")
         stdscr.refresh()
     # end resize_handler
@@ -54,6 +70,7 @@ async def main():
     # end keypress_q
     
     # find bluetooth device
+    print(f"{Style.BOLD}Bluetooth devices available:{Style.RESET}")
     devices = await bleak.BleakScanner.discover()
     i = 0
     for d in devices:
@@ -61,22 +78,28 @@ async def main():
         i += 1
         
     # select bluetooth device
-    print("Enter number to select device")
+    print("\nEnter number to select device")
 
     selection = -1
     while True:
         try:
             selection = int(input())
-            assert selection < i
+            assert (selection < i) and (selection > -1)
             print(f"selected device {selection}: {devices[selection]}")
             break;
         except ValueError:
-            print("Invalid input. Enter a number")
+            print("\nInvalid input. Enter a number")
         except AssertionError:
-            print("Invalid input. Enter a number that corresponds to a device")
-
-    await asyncio.sleep(0)
+            print("\nInvalid input. Enter a number that corresponds to a device")
+    # end while
     
+    # connect to bluetooth device
+
+
+    # before starting curses, prompt for any key
+    print(f"{Style.BOLD}Press enter to start magic drawing board{Style.RESET}")
+    input()
+            
     # curses setup
     stdscr = curses.initscr()
     curses.noecho() # turns off automatic echoing of keys to screen
