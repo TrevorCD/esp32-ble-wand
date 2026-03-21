@@ -117,17 +117,21 @@ async def main():
     def sigint_handler(signum, frame):
         cleanup_exit()
 
-    # restores window to defualt state
+    # quit
     def keypress_q():
         cleanup_exit()
 
+    # reset screen
+    def keypress_r():
+        stdscr.clear()
+        
     # set signal handlers
     signal.signal(signal.SIGWINCH, resize_handler)
     signal.signal(signal.SIGINT, sigint_handler)
     
-    client = await bluetooth_connect()
-    if client == None:
-        exit()
+    #client = await bluetooth_connect()
+    #if client == None:
+    #    exit()
     
     # before starting curses, prompt for any key
     print(f"{Style.BOLD}Press enter to start magic drawing board{Style.RESET}")
@@ -151,8 +155,9 @@ async def main():
 
         key = stdscr.getch()
         match key:
-            case 113: # 'q'
+            case 113: # 'q' -> quit
                 keypress_q()
-                
+            case 114: # 'r' -> reset screen
+                keypress_r()
 
 asyncio.run(main())
