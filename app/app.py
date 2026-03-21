@@ -96,7 +96,8 @@ async def main():
 
     stdscr = None
     client = None
-
+    size = size = shutil.get_terminal_size()
+    
     # restores window to default state and disconnects BLE client if connected
     def cleanup_exit():
         if stdscr != None:
@@ -143,14 +144,22 @@ async def main():
     curses.cbreak()
     stdscr.nodelay(True) # makes getch() non-blocking
     stdscr.keypad(True)
-        
+    curses.curs_set(0) # make terminal cursor invisible
+
+    size = shutil.get_terminal_size()
+    cursor_x = int(size.columns / 2)
+    cursor_y = int(size.lines / 2)
+    old_cursor_x = cursor_x
+    old_cursor_y = cursor_y
+    cursor_char = 'O'
+    
     # loop for catching bluetooth communication and updating screen
     while(True):
         # bluetooth comm
 
         # update screen
-        stdscr.addstr(0, 0, str(curses.LINES))
-        stdscr.addstr(1, 0, str(curses.COLS))
+        stdscr.addch(old_cursor_y, old_cursor_x, cursor_char)
+        stdscr.addch(cursor_y, cursor_x, cursor_char, curses.A_BOLD)
         stdscr.refresh()
 
         key = stdscr.getch()
@@ -158,6 +167,28 @@ async def main():
             case 113: # 'q' -> quit
                 keypress_q()
             case 114: # 'r' -> reset screen
+                old_cursor_y = cursor_y
+                old_cursor_x = cursor_x
                 keypress_r()
+            case curses.KEY_UP:
+                if cursor_y > 0:
+                    old_cursor_y = cursor_y
+                    old_cursor_x = cursor_x
+                    cursor_y -= 1
+            case curses.KEY_DOWN:
+                if cursor_y < size.lines - 1:
+                    old_cursor_y = cursor_y
+                    old_cursor_x = cursor_x
+                    cursor_y += 1
+            case curses.KEY_LEFT:
+                if cursor_x > 0:
+                    old_cursor_y = cursor_y
+                    old_cursor_x = cursor_x
+                    cursor_x -= 1
+            case curses.KEY_RIGHT:
+                if cursor_x < size.columns - 2:
+                    old_cursor_y = cursor_y
+                    old_cursor_x = cursor_x
+                    cursor_x += 1
 
 asyncio.run(main())
