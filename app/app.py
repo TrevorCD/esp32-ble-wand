@@ -81,14 +81,12 @@ async def bluetooth_connect() -> BleakClient:
     client = bleak.BleakClient(devices[selection].address)
     try:
         await client.connect()
-        model_number = await client.read_gatt_char(MODEL_NBR_UUID)
-        print(f"Model Number: {model_number.decode()}")
     except Exception:
         print(f"{Style.RED_BOLD}Failed to connect to bluetooth device{Style.RESET}")
         return None
 
     print(f"{Style.BLUE_BOLD}Bluetooth device connected{Style.RESET}")
-    return devices[selection]
+    return client
 
 # Main -------------------------------------------------------------------------
 
@@ -130,9 +128,9 @@ async def main():
     signal.signal(signal.SIGWINCH, resize_handler)
     signal.signal(signal.SIGINT, sigint_handler)
     
-    #client = await bluetooth_connect()
-    #if client == None:
-    #    exit()
+    client = await bluetooth_connect()
+    if client == None:
+        exit()
     
     # before starting curses, prompt for any key
     print(f"{Style.BOLD}Press enter to start magic drawing board{Style.RESET}")
@@ -154,7 +152,7 @@ async def main():
     cursor_char = 'O'
     
     # loop for catching bluetooth communication and updating screen
-    while(True):
+    while True:
         # bluetooth comm
 
         # update screen
