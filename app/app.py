@@ -31,61 +31,61 @@ import curses   # terminal printing
 
 class Style:
     RED    = '\033[31m'
-    GREEN  = '\033[32m'
-    YELLOW = '\033[33m'
-    BLUE   = '\033[34m'
-    PURPLE = '\033[35m'
-    CYAN   = '\033[36m'
+    GRE  = '\033[32m'
+    YEL = '\033[33m'
+    BLU   = '\033[34m'
+    PUR = '\033[35m'
+    CYA   = '\033[36m'
     
-    BOLD   = '\033[1m'
-    RESET  = '\033[0m'
+    BLD   = '\033[1m'
+    RST  = '\033[0m'
     
-    RED_BOLD    = '\033[1;31m'
-    GREEN_BOLD  = '\033[1;32m'
-    YELLOW_BOLD = '\033[1;33m'
-    BLUE_BOLD   = '\033[1;34m'
-    PURPLE_BOLD = '\033[1;35m'
-    CYAN_BOLD   = '\033[1;36m'
+    RED_BLD    = '\033[1;31m'
+    GRE_BLD  = '\033[1;32m'
+    YEL_BLD = '\033[1;33m'
+    BLU_BLD   = '\033[1;34m'
+    PUR_BLD = '\033[1;35m'
+    CYA_BLD   = '\033[1;36m'
 
 # Helper functions -------------------------------------------------------------
 
 async def bluetooth_connect() -> BleakClient:
     
     # find bluetooth device
-    print(f"{Style.BOLD}Bluetooth devices available:\n{Style.RESET}")
+    print(f"{Style.BLD}Bluetooth devices available:\n{Style.RST}")
     devices = await bleak.BleakScanner.discover()
     i = 0
     for d in devices:
-        print(f"{Style.BOLD}{i}: {Style.RESET}{d.address}: {Style.BOLD}{d.name}{Style.RESET}")
+        print(f"{Style.BLD}{i}: {Style.RST}{d.address}: {Style.BLD}{d.name}{Style.RST}")
         i += 1
         
     if i == 0:
-        print(f"{Style.RED_BOLD}Failed to find any bluetooth devices{Style.RESET}")
+        print(f"{Style.RED_BLD}Failed to find any bluetooth devices{Style.RST}")
         return None
     
     # select bluetooth device
-    print(f"\n{Style.BOLD}Enter number to select device{Style.RESET}")
+    print(f"\n{Style.BLD}Enter number to select device{Style.RST}")
     selection = -1
     while True:
         try:
             selection = int(input())
             assert (selection < i) and (selection > -1)
-            print(f"{Style.GREEN_BOLD}Selected device {selection}: {devices[selection]}{Style.RESET}")
+            print(f"{Style.GRE_BLD}Selected device {selection}: {devices[selection]}{Style.RST}")
             break;
         except ValueError:
-            print(f"{Style.RED_BOLD}Invalid input. Enter a number{Style.RESET}")
+            print(f"{Style.RED_BLD}Invalid input. Enter a number{Style.RST}")
         except AssertionError:
-            print(f"{Style.RED_BOLD}Enter a number that corresponds to a device{Style.RESET}")
+            print(f"{Style.RED_BLD}Enter a number that corresponds to a device{Style.RST}")
 
     # connect to bluetooth device
     client = bleak.BleakClient(devices[selection].address)
     try:
         await client.connect()
     except Exception:
-        print(f"{Style.RED_BOLD}Failed to connect to bluetooth device{Style.RESET}")
+        print(f"{Style.RED_BLD}Failed to connect to bluetooth device{Style.RST}")
         return None
 
-    print(f"{Style.BLUE_BOLD}Bluetooth device connected{Style.RESET}")
+    print(f"{Style.BLU_BLD}Bluetooth device connected{Style.RST}")
     return client
 
 # Main -------------------------------------------------------------------------
@@ -133,7 +133,7 @@ async def main():
         exit()
     
     # before starting curses, prompt for any key
-    print(f"{Style.BOLD}Press enter to start magic drawing board{Style.RESET}")
+    print(f"{Style.BLD}Press enter to start magic drawing board{Style.RST}")
     input()
             
     # curses setup
