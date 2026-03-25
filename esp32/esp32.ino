@@ -30,10 +30,6 @@
 
 /* Globals -------------------------------------------------------------------*/
 /* Global BLE variables */
-BLECharacteristic *pCharacteristic;
-BLEServer *pServer;
-BLEService *pService;
-BLEAdvertising * pAdvertising;
 
 const char * serviceUUID = "3cd00375-4415-4fe2-aa41-42bd35f1c526";
 const char * characteristicUUID = "cc84a98c-36be-4fe1-8345-be620545fd34";
@@ -42,6 +38,10 @@ const char * characteristicUUID = "cc84a98c-36be-4fe1-8345-be620545fd34";
 int connected;
 int readingStarted; // init 0, set 1 on first read, set 0 on disconnect or timeout
 unsigned long lastReadTime = 0;
+
+#if DEBUG
+int disconnected = 0;
+#endif
 
 /* BLE Callbacks -------------------------------------------------------------*/
 class ServerCallbacks: public BLEServerCallbacks {
@@ -54,13 +54,15 @@ class ServerCallbacks: public BLEServerCallbacks {
     }
 
     void onDisconnect(BLEServer* pServer) {
-      connected = 0;
-      readingStarted = 0;
-      pAdvertising->start();  // restart advertising
       #if DEBUG
+      disconnected = 1;
       Serial.println("Disconnected");
       Serial.println("Starting advertising");
       #endif
+      connected = 0;
+      readingStarted = 0;
+      BLEAdvertising* pAdvertising = pServer->getAdvertising
+      pAdvertising->start();  // restart advertising
     }
 };
 
@@ -113,12 +115,12 @@ void setup()
 
   // BLE setup
   BLEDevice::init("ESP32MagicWand");
-  pServer = BLEDevice::createServer();
+  BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new ServerCallbacks());
 
-  pService = pServer->createService(serviceUUID);
+  BLEService *pService = pServer->createService(serviceUUID);
   
-  pCharacteristic = pService->createCharacteristic(
+  BLECharacteristic *pCharacteristic = pService->createCharacteristic(
     characteristicUUID,
     BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
   );
@@ -126,7 +128,7 @@ void setup()
   pCharacteristic->setValue(1);
   pService->start();
 
-  pAdvertising = pServer->getAdvertising();
+  BLEAdvertising *pAdvertising = pServer->getAdvertising();
   pAdvertising->start();
 
   #if DEBUG
@@ -137,6 +139,9 @@ void setup()
 
 void loop()
 {
+  Serial.print(disconnected);
+  Serial.print(connected);
+  Serial.println(readingStarted);
   if(connected == 1 && readingStarted == 1 && (lastReadTime + READ_TIMEOUT_MS < millis()))
   {
     #if DEBUG
