@@ -13,19 +13,30 @@ BLEAdvertising * pAdvertising;
 char * serviceUUID = "3cd00375-4415-4fe2-aa41-42bd35f1c526";
 char * characteristicUUID = "cc84a98c-36be-4fe1-8345-be620545fd34";
 
-class ServerCallbacks : public BLEServerCallbacks {
+int connected;
+
+class ServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
-        #if DEBUG
-        Serial.println("Connected");
-        #endif
+      connected = 1;
+      #if DEBUG
+      Serial.println("Connected");
+      #endif
     }
 
     void onDisconnect(BLEServer* pServer) {
-        BLEDevice::getAdvertising()->start();  // restart advertising
-        #if DEBUG
-        Serial.println("Disconnected. Advertising started");
-        #endif
+      BLEDevice::getAdvertising()->start();  // restart advertising
+      #if DEBUG
+      Serial.println("Disconnected. Advertising started");
+      #endif
     }
+};
+
+class CharacteristicCallbacks: public BLECharacteristicCallbacks {
+  void onRead(BLECharacteristic* pCharacteristic) {
+    // set new value
+    /// for testing:
+    pCharacteristic->setValue(1);
+  }
 };
 
 void setup()
@@ -47,9 +58,15 @@ void setup()
     characteristicUUID,
     BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
   );
-
-  pCharacteristic->setValue("Hello world");
+  pCharacteristic->setCallbacks(new CharacteristicCallbacks());
+  pCharacteristic->setValue(1);
   pService->start();
+
+  connected = 0; 
+}
+
+void loop()
+{
 
   pAdvertising = pServer->getAdvertising();
   pAdvertising->start();
@@ -57,15 +74,18 @@ void setup()
   #if DEBUG
   Serial.println("Advertising started");
   #endif
-}
 
-void loop()
-{
   // Wait on connection
+  while(connected = 0)
+  {
 
+  }
   // while connected:
-  //   get data from stm32
+  while(connected == 1)
+  {
+    // get data from stm32
 
-  //   send data over bluetooth
+    // send data over bluetooth
 
+  }
 }
