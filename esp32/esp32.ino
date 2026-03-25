@@ -26,13 +26,19 @@ class ServerCallbacks: public BLEServerCallbacks {
     void onDisconnect(BLEServer* pServer) {
       BLEDevice::getAdvertising()->start();  // restart advertising
       #if DEBUG
-      Serial.println("Disconnected. Advertising started");
+      Serial.println("Disconnected");
+      Serial.println("Starting advertising");
       #endif
     }
 };
 
 class CharacteristicCallbacks: public BLECharacteristicCallbacks {
   void onRead(BLECharacteristic* pCharacteristic) {
+    #if DEBUG
+    Serial.println("read callback");
+    #endif
+    // get new value from stme32
+
     // set new value
     /// for testing:
     pCharacteristic->setValue(1);
@@ -63,10 +69,6 @@ void setup()
   pService->start();
 
   connected = 0; 
-}
-
-void loop()
-{
 
   pAdvertising = pServer->getAdvertising();
   pAdvertising->start();
@@ -75,17 +77,9 @@ void loop()
   Serial.println("Advertising started");
   #endif
 
-  // Wait on connection
-  while(connected = 0)
-  {
+}
 
-  }
-  // while connected:
-  while(connected == 1)
-  {
-    // get data from stm32
+void loop()
+{
 
-    // send data over bluetooth
-
-  }
 }
