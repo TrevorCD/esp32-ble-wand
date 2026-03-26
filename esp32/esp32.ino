@@ -22,33 +22,43 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include <BLE2902.h>
 
 #define DEBUG 1
 
-#define READ_TIMEOUT_MS 2500
+#define READ_TIMEOUT_MS 1000
 #define CONNECT_TIMEOUT_MS 5000
 
 /* Globals -------------------------------------------------------------------*/
 /* Global BLE variables */
 BLEServer* g_pServer;
 
-const char * serviceUUID = "3cd00375-4415-4fe2-aa41-42bd35f1c526";
-const char * characteristicUUID = "cc84a98c-36be-4fe1-8345-be620545fd34";
+const char* serviceUUID = "3cd00375-4415-4fe2-aa41-42bd35f1c526";
+const char* characteristicUUID = "cc84a98c-36be-4fe1-8345-be620545fd34";
 
 /* Global connection state variables */
 enum BLEState {
-  INIT,
-  ADVERTISING,
-  CONNECTED,
-  READING,
-  DISCONNECTED
+  INIT,         // 0
+  ADVERTISING,  // 1
+  CONNECTED,    // 2
+  READING,      // 3
+  DISCONNECTED  // 4
 };
 
 BLEState g_state;
 unsigned long lastReadTime;
 unsigned long lastConnectTime;
 
+/* Helper functions ----------------------------------------------------------*/
+void timeout() {
+  g_state = DISCONNECTED;
+}
+
+int packCoords(uint8_t x, uint8_t y, uint8_t z) {
+  int packed = 0 | x;
+  packed |= (y << 8);
+  packed |= (z << 16);
+  return packed;
+}
 
 /* BLE Callbacks -------------------------------------------------------------*/
 class ServerCallbacks: public BLEServerCallbacks {
@@ -100,19 +110,13 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks {
 
     // set new value
     /// for testing:
-    pCharacteristic->setValue(1);
+    int coords = packCoords(3, 2, 1);
+    pCharacteristic->setValue(coords);
   }
 };
 
-/* Helper functions ----------------------------------------------------------*/
-void timeout()
-{
-  g_state = DISCONNECTED;
-}
-
 /* Main ----------------------------------------------------------------------*/
-void setup()
-{
+void setup() {
   #if DEBUG
   Serial.begin(9600);
   #endif
@@ -137,8 +141,7 @@ void setup()
   pService->start();
 }
 
-void loop()
-{
+void loop() {
   BLEAdvertising *pAdvertising = g_pServer->getAdvertising();
 
   #if DEBUG
@@ -158,8 +161,7 @@ void loop()
 
       break;
     case CONNECTED:
-      if(lastConnectTime + CONNECT_TIMEOUT_MS < millis())
-      {
+      if(lastConnectTime + CONNECT_TIMEOUT_MS < millis()) {
         #if DEBUG
         Serial.println("Connection timeout");
         #endif
@@ -167,8 +169,7 @@ void loop()
       }
       break;
     case READING:
-      if(lastReadTime + READ_TIMEOUT_MS < millis())
-        {
+      if(lastReadTime + READ_TIMEOUT_MS < millis()) {
           #if DEBUG
           Serial.println("Reading timeout");
           #endif

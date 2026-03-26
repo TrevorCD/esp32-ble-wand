@@ -162,20 +162,20 @@ async def main():
     #input()
     
     # curses setup
-    stdscr = curses.initscr()
-    signal.signal(signal.SIGWINCH, resize_handler)
-    curses.noecho() # turns off automatic echoing of keys to screen
-    curses.cbreak()
-    stdscr.nodelay(True) # makes getch() non-blocking
-    stdscr.keypad(True)
-    curses.curs_set(0) # make terminal cursor invisible
+    #stdscr = curses.initscr()
+    #signal.signal(signal.SIGWINCH, resize_handler)
+    #curses.noecho() # turns off automatic echoing of keys to screen
+    #curses.cbreak()
+    #stdscr.nodelay(True) # makes getch() non-blocking
+    #stdscr.keypad(True)
+    #curses.curs_set(0) # make terminal cursor invisible
 
-    size = shutil.get_terminal_size()
-    cursor_x = int(size.columns / 2)
-    cursor_y = int(size.lines / 2)
-    old_cursor_x = cursor_x
-    old_cursor_y = cursor_y
-    cursor_char = 'O'
+    #size = shutil.get_terminal_size()
+    #cursor_x = int(size.columns / 2)
+    #cursor_y = int(size.lines / 2)
+    #old_cursor_x = cursor_x
+    #old_cursor_y = cursor_y
+    #cursor_char = 'O'
     
     # loop for catching bluetooth communication and updating screen
     while True:
@@ -184,24 +184,31 @@ async def main():
         
         # bluetooth comm
         test_val = await client.read_gatt_char(characteristic_uuid)
-        test_val = int(test_val[0])
-        if cursor_x + test_val > 0 and cursor_x + test_val < size.columns - 2:
-            old_cursor_x = cursor_x
-            cursor_x += test_val
+        #test_val = int(test_val[0])
+        #bytes_val = test_val.to_bytes(4, byteorder='little')
+        
+        ## TEST
+        for i in test_val:
+            print(f"{i}")
+
+        
+        #if cursor_x + test_val > 0 and cursor_x + test_val < size.columns - 2:
+        #    old_cursor_x = cursor_x
+        #    cursor_x += test_val
         
         # update screen
-        stdscr.addch(old_cursor_y, old_cursor_x, cursor_char)
-        stdscr.addch(cursor_y, cursor_x, cursor_char, curses.A_BOLD)
-        stdscr.refresh()
+        #stdscr.addch(old_cursor_y, old_cursor_x, cursor_char)
+        #stdscr.addch(cursor_y, cursor_x, cursor_char, curses.A_BOLD)
+        #stdscr.refresh()
 
-        key = stdscr.getch()
-        match key:
-            case 113: # 'q' -> quit
-                #keypress_q()
-                await ble_cleanup_exit()
-            case 114: # 'r' -> reset screen
-                old_cursor_y = cursor_y
-                old_cursor_x = cursor_x
-                keypress_r()
+        #key = stdscr.getch()
+        #match key:
+        #    case 113: # 'q' -> quit
+        #        #keypress_q()
+        #        await ble_cleanup_exit()
+        #    case 114: # 'r' -> reset screen
+        #        old_cursor_y = cursor_y
+        #        old_cursor_x = cursor_x
+        #        keypress_r()
 
 asyncio.run(main())
