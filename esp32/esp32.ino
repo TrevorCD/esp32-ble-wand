@@ -26,7 +26,8 @@
 
 #define DEBUG 1
 
-#define READ_TIMEOUT_MS 5000
+#define READ_TIMEOUT_MS 2500
+#define CONNECT_TIMEOUT_MS 5000
 
 /* Globals -------------------------------------------------------------------*/
 /* Global BLE variables */
@@ -36,19 +37,31 @@ const char * serviceUUID = "3cd00375-4415-4fe2-aa41-42bd35f1c526";
 const char * characteristicUUID = "cc84a98c-36be-4fe1-8345-be620545fd34";
 
 /* Global connection state variables */
-int connected;
-int readingStarted; // init 0, set 1 on first read, set 0 on disconnect or timeout
-unsigned long lastReadTime = 0;
+enum BLEState {
+  INIT,
+  ADVERTISING,
+  CONNECTED,
+  READING,
+  DISCONNECTED
+};
 
-#if DEBUG
-int disconnected = 0;
-#endif
+BLEState g_state;
+unsigned long lastReadTime;
+unsigned long lastConnectTime;
+
 
 /* BLE Callbacks -------------------------------------------------------------*/
 class ServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
-      connected = 1;
-      lastReadTime = millis(); // for initial read timeout time
+      if(g_state != ADVERTISING) {
+        #if DEBUG
+        Serial.println("ERROR: Connection while state not advertising");
+        Serial.print("State: ");
+        Serial.println(g_state);
+        #endif
+      }
+      g_state = CONNECTED;
+      lastConnectTime = millis();
       #if DEBUG
       Serial.println("Connected");
       #endif
@@ -56,12 +69,9 @@ class ServerCallbacks: public BLEServerCallbacks {
 
     void onDisconnect(BLEServer* pServer) {
       #if DEBUG
-      disconnected = 1;
       Serial.println("Disconnected");
-      Serial.println("Starting advertising");
       #endif
-      connected = 0;
-      readingStarted = 0;
+      g_state = DISCONNECTED;
     }
 };
 
@@ -70,9 +80,15 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks {
     #if DEBUG
     Serial.println("read callback");
     #endif
-    if(readingStarted == 0)
-    {
-      readingStarted = 1;
+    if(g_state == CONNECTED) {
+      g_state = READING;
+    }
+    else if(g_state != READING) {
+      #if DEBUG
+      Serial.print("ERROR: Read during state: ");
+      Serial.println(g_state);
+      for(;;){}
+      #endif
     }
     // reset read timeout
     lastReadTime = millis();
@@ -91,15 +107,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks {
 /* Helper functions ----------------------------------------------------------*/
 void timeout()
 {
-  connected = 0;
-  disconnected = 1;
-  readingStarted = 0;
-  BLEAdvertising* pAdvertising = g_pServer->getAdvertising();
-  pAdvertising->start();
-  #if DEBUG
-  Serial.println("Read timeout occured");
-  Serial.println("Advertise start");
-  #endif
+  g_state = DISCONNECTED;
 }
 
 /* Main ----------------------------------------------------------------------*/
@@ -111,8 +119,7 @@ void setup()
   // pin setup
 
   // state initialization
-  connected = 0;
-  readingStarted = 0;
+  g_state = INIT;
 
   // BLE setup
   BLEDevice::init("ESP32MagicWand");
@@ -128,40 +135,52 @@ void setup()
   pCharacteristic->setCallbacks(new CharacteristicCallbacks());
   pCharacteristic->setValue(1);
   pService->start();
-
-  BLEAdvertising *pAdvertising = pServer->getAdvertising();
-  pAdvertising->start();
-
-  #if DEBUG
-  Serial.println("Advertising started");
-  #endif
-
 }
 
 void loop()
 {
-  Serial.print(disconnected);
-  Serial.print(connected);
-  Serial.println(readingStarted);
-  if(disconnected == 1)
-  {
-    disconnected = 0;
-    BLEAdvertising *pAdvertising = g_pServer->getAdvertising();
-    pAdvertising->start();
-    #if DEBUG
-    Serial.println("Started advertising");
-    #endif
-  }
-  if(connected == 1 && readingStarted == 1 && (lastReadTime + READ_TIMEOUT_MS < millis()))
-  {
-    #if DEBUG
-    Serial.print("millis: ");
-    Serial.print(millis());
-    #endif
-    Serial.print("connected: ");
-    Serial.println(connected);
-    Serial.print("ReadingStarted: ");
-    Serial.println(readingStarted);
-    timeout();
+  BLEAdvertising *pAdvertising = g_pServer->getAdvertising();
+
+  #if DEBUG
+  Serial.print("state: ");
+  Serial.println(g_state);
+  #endif
+
+  switch(g_state) {
+    case INIT:
+      pAdvertising->start();
+      g_state = ADVERTISING;
+      #if DEBUG
+      Serial.println("Advertising started");
+      #endif
+      break;
+    case ADVERTISING:
+
+      break;
+    case CONNECTED:
+      if(lastConnectTime + CONNECT_TIMEOUT_MS < millis())
+      {
+        #if DEBUG
+        Serial.println("Connection timeout");
+        #endif
+        timeout();
+      }
+      break;
+    case READING:
+      if(lastReadTime + READ_TIMEOUT_MS < millis())
+        {
+          #if DEBUG
+          Serial.println("Reading timeout");
+          #endif
+          timeout();
+        }
+      break;
+    case DISCONNECTED:
+      pAdvertising->start();
+      g_state = ADVERTISING;
+      #if DEBUG
+      Serial.println("Started advertising");
+      #endif
+      break;
   }
 }
