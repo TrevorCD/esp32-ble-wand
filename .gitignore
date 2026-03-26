@@ -58,4 +58,4 @@ dkms.conf
 *~
 
 # stm32 files
-./stm32/*
+stm32/
