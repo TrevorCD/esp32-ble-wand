@@ -62,8 +62,6 @@ class ServerCallbacks: public BLEServerCallbacks {
       #endif
       connected = 0;
       readingStarted = 0;
-      BLEAdvertising* pAdvertising = pServer->getAdvertising();
-      pAdvertising->start();  // restart advertising
     }
 };
 
@@ -94,6 +92,7 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks {
 void timeout()
 {
   connected = 0;
+  disconnected = 1;
   readingStarted = 0;
   BLEAdvertising* pAdvertising = g_pServer->getAdvertising();
   pAdvertising->start();
@@ -144,6 +143,15 @@ void loop()
   Serial.print(disconnected);
   Serial.print(connected);
   Serial.println(readingStarted);
+  if(disconnected == 1)
+  {
+    disconnected = 0;
+    BLEAdvertising *pAdvertising = g_pServer->getAdvertising();
+    pAdvertising->start();
+    #if DEBUG
+    Serial.println("Started advertising");
+    #endif
+  }
   if(connected == 1 && readingStarted == 1 && (lastReadTime + READ_TIMEOUT_MS < millis()))
   {
     #if DEBUG
