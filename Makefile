@@ -9,7 +9,7 @@ app:
 stm32:
 	$(MAKE) -C stm32
 
-stm-flash: stm32
+stm32-flash: stm32
 	st-flash write stm32/build/stm32.bin 0x8000000
 
 ocd:
