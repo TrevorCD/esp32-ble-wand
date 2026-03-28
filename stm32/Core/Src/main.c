@@ -47,7 +47,8 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+MPU6500_HandleTypeDef hmpu;
+MPU6500_OutputTypeDef hmpu_out;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -98,7 +99,11 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  hmpu = {0};
+  hmpu_out = {0};
+  if(MPU6500_Init(&hmpu) != 0) {
+	  Error_Handler();
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,8 +111,12 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+	  
     /* USER CODE BEGIN 3 */
+	  if(MPU6500_GetAccel(&hmpu, &hmpu_out) != 0) Error_Handler();
+	  if(MPU6500_GetGyro(&hmpu, &hmpu_out) != 0) Error_Handler();
+	  if(MPU6500_GetTemo(&hmpu, &hmpu_out) != 0) Error_Handler();
+	  
   }
   /* USER CODE END 3 */
 }
