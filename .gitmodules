@@ -1,0 +1,3 @@
+[submodule "stm32/Drivers/MPU6500"]
+	path = stm32/Drivers/MPU6500
+	url = https://github.com/TrevorCD/MPU-6500-STM32-Device-Driver.git
