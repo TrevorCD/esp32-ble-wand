@@ -99,6 +99,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  hmpu.hi2c = &hi2c1;
   if(MPU6500_Init(&hmpu) != 0) {
 	  Error_Handler();
   }
