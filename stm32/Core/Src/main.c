@@ -100,9 +100,7 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   hmpu.hi2c = &hi2c1;
-  if(MPU6500_Init(&hmpu) != 0) {
-	  Error_Handler();
-  }
+  if(MPU6500_Init(&hmpu) != 0) Error_Handler();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -110,12 +108,11 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  
+
     /* USER CODE BEGIN 3 */
 	  if(MPU6500_GetAccel(&hmpu, &mpu_out) != 0) Error_Handler();
 	  if(MPU6500_GetGyro(&hmpu, &mpu_out) != 0) Error_Handler();
 	  if(MPU6500_GetTemp(&hmpu, &mpu_out) != 0) Error_Handler();
-	  
   }
   /* USER CODE END 3 */
 }
@@ -197,6 +194,14 @@ static void MX_I2C1_Init(void)
   }
   /* USER CODE BEGIN I2C1_Init 2 */
 
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
   /* USER CODE END I2C1_Init 2 */
 
 }
