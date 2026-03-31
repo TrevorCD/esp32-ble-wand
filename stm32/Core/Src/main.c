@@ -107,7 +107,12 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   hmpu.hi2c = &hi2c1;
+  // initialize device
   if(MPU6500_Init(&hmpu) != 0) Error_Handler();
+  // set sample rate to minimum (max div)
+  if(MPU6500_SetSampleRateDiv(&hmpu, 0xFF) != 0) Error_Handler();
+  /* Enable raw data ready interrupts */
+  if(MPU6500_EnableInterrupts(&hmpu) != 0) Error_Handler();
   /* USER CODE END 2 */
 
   /* Infinite loop */
