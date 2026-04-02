@@ -117,19 +117,33 @@ int main(void)
   if(MPU6500_SetSampleRateDiv(&hmpu, 16) != 0) Error_Handler();
   /* Enable raw data ready interrupts */
   if(MPU6500_EnableInterrupts(&hmpu) != 0) Error_Handler();
+  
   // initialize time on INS_Position pos. All other mem set to 0.
   pos.time_ms = HAL_GetTick();
 
-  // get initial gyro sample to calculate offset
-  while(hmpu.data_ready == 0)
-  {
-	  /* SPIN */
+  // get initial gyro and accel samples to calculate offsets
+  const int offset_samples = 10;
+  for(int i = 0; i < offset_samples; i++) {
+	  while(hmpu.data_ready == 0)
+	  {
+		  /* SPIN */
+	  }
+	  hmpu.data_ready = 0;
+	  if(MPU6500_GetGyro(&hmpu, &mpu_out) != 0) Error_Handler();
+	  if(MPU6500_GetAccel(&hmpu, &mpu_out) != 0) Error_Handler();
+	  pos.gyro_offset.x += mpu_out.gyro_xout;
+	  pos.gyro_offset.y += mpu_out.gyro_yout;
+	  pos.gyro_offset.z += mpu_out.gyro_zout;
+	  pos.accel_offset.x += mpu_out.accel_xout;
+	  pos.accel_offset.y += mpu_out.accel_yout;
+	  pos.accel_offset.z += mpu_out.accel_zout;
   }
-  hmpu.data_ready = 0;
-  if(MPU6500_GetGyro(&hmpu, &mpu_out) != 0) Error_Handler();
-  pos.gyro_offset.x = mpu_out.gyro_xout;
-  pos.gyro_offset.y = mpu_out.gyro_yout;
-  pos.gyro_offset.z = mpu_out.gyro_zout;
+  pos.gyro_offset.x /= offset_samples;
+  pos.gyro_offset.y /= offset_samples;
+  pos.gyro_offset.z /= offset_samples;
+  pos.accel_offset.x /= offset_samples;
+  pos.accel_offset.y /= offset_samples;
+  pos.accel_offset.z /= offset_samples;
   /* USER CODE END 2 */
 
   /* Infinite loop */
