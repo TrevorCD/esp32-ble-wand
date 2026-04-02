@@ -22,7 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mpu6500.h"
-
+#include "ins.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,7 +49,10 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 MPU6500_HandleTypeDef hmpu = {0};
 MPU6500_OutputTypeDef mpu_out = {0};
+INS_Position pos = {0};
+// debug variables
 int _loops = 0;
+int _errors = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -81,7 +84,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	INS_Vector accel_vec;
+	INS_Vector gyro_vec;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -109,10 +113,12 @@ int main(void)
   hmpu.hi2c = &hi2c1;
   // initialize device
   if(MPU6500_Init(&hmpu) != 0) Error_Handler();
-  // set sample rate to minimum (max div)
-  if(MPU6500_SetSampleRateDiv(&hmpu, 0xFF) != 0) Error_Handler();
+  // set sample rate div to low frequency (1kHz/17)
+  if(MPU6500_SetSampleRateDiv(&hmpu, 16) != 0) Error_Handler();
   /* Enable raw data ready interrupts */
   if(MPU6500_EnableInterrupts(&hmpu) != 0) Error_Handler();
+  // initialize time on INS_Position pos. All other mem set to 0.
+  pos.time_ms = HAL_GetTick();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -128,9 +134,17 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(MPU6500_GetAccel(&hmpu, &mpu_out) != 0) Error_Handler();
-	  if(MPU6500_GetGyro(&hmpu, &mpu_out) != 0) Error_Handler();
-	  if(MPU6500_GetTemp(&hmpu, &mpu_out) != 0) Error_Handler();
+	  if(MPU6500_GetAccel(&hmpu, &mpu_out) != 0) _errors++;
+	  if(MPU6500_GetGyro(&hmpu, &mpu_out) != 0) _errors++;
+	  //update vectors
+	  accel_vec.x = mpu_out.accel_xout;
+	  accel_vec.y = mpu_out.accel_yout;
+	  accel_vec.z = mpu_out.accel_zout;
+	  gyro_vec.x = mpu_out.gyro_xout;
+	  gyro_vec.y = mpu_out.gyro_yout;
+	  gyro_vec.z = mpu_out.gyro_zout;
+	  
+	  INS_Update(&pos, &accel_vec, &gyro_vec, HAL_GetTick());
 	  _loops++;
   }
   /* USER CODE END 3 */
