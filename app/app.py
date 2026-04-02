@@ -24,6 +24,7 @@ import bleak    # bluetooth lib
 import shutil   # shell utilities
 import signal   # signal catching
 import curses   # terminal printing
+import struct
 
 # Globals ----------------------------------------------------------------------
 
@@ -183,14 +184,14 @@ async def main():
             await ble_cleanup_exit()
         
         # bluetooth comm
-        test_val = await client.read_gatt_char(characteristic_uuid)
+        position_vec = await client.read_gatt_char(characteristic_uuid)
         #test_val = int(test_val[0])
         #bytes_val = test_val.to_bytes(4, byteorder='little')
-        
-        ## TEST
-        for i in test_val:
-            print(f"{i}")
 
+        x, y, z = struct.unpack('fff', position_vec)  # 'fff' = 3 floats
+        print(x)
+        print(y)
+        print(z)
         
         #if cursor_x + test_val > 0 and cursor_x + test_val < size.columns - 2:
         #    old_cursor_x = cursor_x
