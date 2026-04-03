@@ -32,7 +32,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define UART_HEADER (0xAA)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,7 +49,7 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 MPU6500_HandleTypeDef hmpu = {0};
 MPU6500_OutputTypeDef mpu_out = {0};
-INS_Position pos = {0};
+//INS_Position pos = {0};
 // debug variables
 int _loops = 0;
 int _errors = 0;
@@ -84,8 +84,12 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	INS_Vector accel_vec;
 	INS_Vector gyro_vec;
+	INS_Vector gyro_offset = {0};
+	uint32_t old_time = 0;;
+	uint32_t time = 0;
+	uint32_t dt = 0;
+	//INS_Vector gyro_vec;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -119,37 +123,29 @@ int main(void)
   if(MPU6500_EnableInterrupts(&hmpu) != 0) Error_Handler();
   
   // initialize time on INS_Position pos. All other mem set to 0.
-  pos.time_ms = HAL_GetTick();
+  ///pos.time_ms = HAL_GetTick();
 
-  // get initial gyro and accel samples to calculate offsets
+  // get initial gyro samples to calculate offsets
   const int offset_samples = 10;
   for(int i = 0; i < offset_samples; i++) {
 	  while(hmpu.data_ready == 0)
 	  {
-		  /* SPIN */
+		  // SPIN
 	  }
 	  hmpu.data_ready = 0;
 	  if(MPU6500_GetGyro(&hmpu, &mpu_out) != 0) Error_Handler();
-	  if(MPU6500_GetAccel(&hmpu, &mpu_out) != 0) Error_Handler();
-	  pos.gyro_offset.x += mpu_out.gyro_xout;
-	  pos.gyro_offset.y += mpu_out.gyro_yout;
-	  pos.gyro_offset.z += mpu_out.gyro_zout;
-	  pos.accel_offset.x += mpu_out.accel_xout;
-	  pos.accel_offset.y += mpu_out.accel_yout;
-	  pos.accel_offset.z += mpu_out.accel_zout;
+	  gyro_offset.x += mpu_out.gyro_xout;
+	  gyro_offset.y += mpu_out.gyro_yout;
+	  gyro_offset.z += mpu_out.gyro_zout;
   }
-  pos.gyro_offset.x /= offset_samples;
-  pos.gyro_offset.y /= offset_samples;
-  pos.gyro_offset.z /= offset_samples;
-  pos.accel_offset.x /= offset_samples;
-  pos.accel_offset.y /= offset_samples;
-  pos.accel_offset.z /= offset_samples;
-  // add back in gravity
-  pos.accel_offset.z -= 1.0f;
+  gyro_offset.x /= offset_samples;
+  gyro_offset.y /= offset_samples;
+  gyro_offset.z /= offset_samples;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t uart_header = UART_HEADER;  
   while (1)
   {
 	  while(hmpu.data_ready == 0)
@@ -161,18 +157,27 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(MPU6500_GetAccel(&hmpu, &mpu_out) != 0) _errors++;
+	  old_time = time;
+	  time = HAL_GetTick();
+	  dt = time - old_time;
+	  
 	  if(MPU6500_GetGyro(&hmpu, &mpu_out) != 0) _errors++;
 	  //update vectors
-	  accel_vec.x = mpu_out.accel_xout;
-	  accel_vec.y = mpu_out.accel_yout;
-	  accel_vec.z = mpu_out.accel_zout;
-	  gyro_vec.x = mpu_out.gyro_xout;
-	  gyro_vec.y = mpu_out.gyro_yout;
-	  gyro_vec.z = mpu_out.gyro_zout;
-	  
-	  INS_Update(&pos, &accel_vec, &gyro_vec, HAL_GetTick());
+	  gyro_vec.x = (mpu_out.gyro_xout - gyro_offset.x) * dt;
+	  gyro_vec.y = (mpu_out.gyro_yout - gyro_offset.y) * dt;
+	  gyro_vec.z = (mpu_out.gyro_zout - gyro_offset.z) * dt;
 	  _loops++;
+	  
+	  // send header
+	  if(HAL_UART_Transmit(&huart1, &uart_header,
+						   sizeof(uint8_t), 1000) != HAL_OK) {
+		  Error_Handler();
+	  }
+	  // send position vector
+	  if(HAL_UART_Transmit(&huart1, (uint8_t*)&(gyro_vec),
+						   sizeof(INS_Vector), 1000) != HAL_OK) {
+		  Error_Handler();
+	  }
   }
   /* USER CODE END 3 */
 }
