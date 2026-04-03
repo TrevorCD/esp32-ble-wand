@@ -61,6 +61,12 @@ Use Arduino IDE with the ESP32 Dev Module from Espressif to compile and flash.
 
 ### Dependencies
 
+* STM32CubeMX
+* Make
+* arm-none-eabi-gcc
+* st-link
+
 ### Compilation
 
-## BlueTooth Protocol
+Run `make stm32` for compiling the source, and `make stm32-flash` for flashing
+the binary to the stm32 using st-link.
