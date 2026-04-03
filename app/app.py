@@ -27,6 +27,8 @@ import curses   # terminal printing
 import struct
 
 # Globals ----------------------------------------------------------------------
+stdscr = None
+client = None
 
 # Classes ----------------------------------------------------------------------
 
@@ -97,8 +99,8 @@ async def bluetooth_connect() -> BleakClient:
 
 async def main():
 
-    stdscr = None
-    client = None
+    global stdscr, client
+    
     size = size = shutil.get_terminal_size()
 
     shutdown = False # main loop catches this and exits with ble_cleanup_exit()
@@ -122,16 +124,7 @@ async def main():
     def sigint_handler(signum, frame):
         if client == None:
             exit()
-        shutdown = True
 
-    # quit
-    def keypress_q():
-        shutdown = True
-
-    # reset screen
-    def keypress_r():
-        stdscr.clear()
-        
     # set signal handlers
     signal.signal(signal.SIGINT, sigint_handler)
 
@@ -142,74 +135,66 @@ async def main():
 
     service_uuid = "3cd00375-4415-4fe2-aa41-42bd35f1c526"
     characteristic_uuid = "cc84a98c-36be-4fe1-8345-be620545fd34"
-    #service_collection = None
-    #service_collection = client.services
-    
-    #if service_collection[0] == None:
-    #    print(f"{Style.RED}No services{Style.RST}")
-    #    await ble_cleanup_exit()
-
-    #service = None
-    #try:
-    #    service = service_collection.get_service(service_uuid)
-    #except Exception:
-    #    print(f"{Style.RED}Service UUID match failure{Style.RST}")
-    #    await ble_cleanup_exit()
-
-    #characteristic = service.characteristics[0]
-        
-    # before starting curses, prompt for any key
-    #print(f"{Style.BLD}Press enter to start magic drawing board{Style.RST}")
-    #input()
     
     # curses setup
-    #stdscr = curses.initscr()
-    #signal.signal(signal.SIGWINCH, resize_handler)
-    #curses.noecho() # turns off automatic echoing of keys to screen
-    #curses.cbreak()
-    #stdscr.nodelay(True) # makes getch() non-blocking
-    #stdscr.keypad(True)
-    #curses.curs_set(0) # make terminal cursor invisible
+    stdscr = curses.initscr()
+    signal.signal(signal.SIGWINCH, resize_handler)
+    curses.noecho() # turns off automatic echoing of keys to screen
+    curses.cbreak()
+    stdscr.nodelay(True) # makes getch() non-blocking
+    stdscr.keypad(True)
+    curses.curs_set(0) # make terminal cursor invisible
 
-    #size = shutil.get_terminal_size()
-    #cursor_x = int(size.columns / 2)
-    #cursor_y = int(size.lines / 2)
-    #old_cursor_x = cursor_x
-    #old_cursor_y = cursor_y
-    #cursor_char = 'O'
-    
+    size = shutil.get_terminal_size()
+    midpoint_x = float(size.columns / 2)
+    midpoint_y = float(size.lines / 2)
+    max_x = size.columns - 2
+    max_y = size.lines - 1
+    cursor_x = midpoint_x
+    cursor_y = midpoint_y
+    old_cursor_x = cursor_x
+    old_cursor_y = cursor_y
+    old_old_cursor_x = cursor_x
+    old_old_cursor_y = cursor_y
+    cursor_char = 'O'
+    midpoint_char = '•' # bullet 0d149
     # loop for catching bluetooth communication and updating screen
     while True:
-        if shutdown:
-            await ble_cleanup_exit()
-        
         # bluetooth comm
         position_vec = await client.read_gatt_char(characteristic_uuid)
-        #test_val = int(test_val[0])
-        #bytes_val = test_val.to_bytes(4, byteorder='little')
-
         x, y, z = struct.unpack('fff', position_vec)  # 'fff' = 3 floats
-        print(x)
-        print(y)
-        print(z)
-        
-        #if cursor_x + test_val > 0 and cursor_x + test_val < size.columns - 2:
-        #    old_cursor_x = cursor_x
-        #    cursor_x += test_val
+
+        # update cursor
+        old_old_cursor_x = old_cursor_x
+        old_old_cursor_y = old_cursor_y
+        old_cursor_x = cursor_x
+        old_cursor_y = cursor_y
+        cursor_x -= (z * 0.02)
+        cursor_y -= (x * 0.01)
+
+        # bounds check on cursor
+        if cursor_x < 0:
+            cursor_x = 0
+        if cursor_x > max_x:
+            cursor_x = max_x
+        if cursor_y < 0:
+            cursor_y = 0;
+        if cursor_y > max_y:
+            cursor_y = max_y
         
         # update screen
-        #stdscr.addch(old_cursor_y, old_cursor_x, cursor_char)
-        #stdscr.addch(cursor_y, cursor_x, cursor_char, curses.A_BOLD)
-        #stdscr.refresh()
+        stdscr.addch(int(old_old_cursor_y), int(old_old_cursor_x), ' ')
+        stdscr.addch(int(old_cursor_y), int(old_cursor_x), 'o')
+        stdscr.addch(int(midpoint_y), int(midpoint_x), midpoint_char)
+        stdscr.addch(int(cursor_y), int(cursor_x), cursor_char, curses.A_BOLD)
+        stdscr.refresh()
 
-        #key = stdscr.getch()
-        #match key:
-        #    case 113: # 'q' -> quit
-        #        #keypress_q()
-        #        await ble_cleanup_exit()
-        #    case 114: # 'r' -> reset screen
-        #        old_cursor_y = cursor_y
-        #        old_cursor_x = cursor_x
-        #        keypress_r()
-
+        key = stdscr.getch()
+        match key:
+            case 113: # 'q' -> quit
+                await ble_cleanup_exit()
+            case 114: # 'r' -> reset screen
+                cursor_x = midpoint_x
+                cursor_y = midpoint_y
+                stdscr.clear()
 asyncio.run(main())
