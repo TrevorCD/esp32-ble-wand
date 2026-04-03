@@ -24,6 +24,12 @@ voltage: 3-5V
   <img align="center" src="media/BlockDiagram.png" width="100%"/>
 </div>
 
+## Circuit Diagram
+
+<div width="100%">
+  <img align="center" src="media/circuit.png" width="100%"/>
+</div>
+
 ## Host side application
 
 Python Tui application that communicates with the ESP32 over BLE and draws the
