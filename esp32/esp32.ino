@@ -24,7 +24,7 @@
 #include <BLEUtils.h>
 
 #define DEBUG_BLE 0
-#define DEBUG_UART1 1
+#define DEBUG_UART1 0
 
 #define READ_TIMEOUT_MS 1000
 #define CONNECT_TIMEOUT_MS 5000
@@ -57,8 +57,6 @@ unsigned long lastConnectTime;
 /* Global UART variables */
 uint8_t UART1_msg_buf[UART1_MSG_LEN];
 
-/* TEST */
-float TEST_UART1_msg_buf[3] = { 0.1f, 0.2f, 0.3f };
 /* Helper functions ----------------------------------------------------------*/
 void timeout() {
   g_state = DISCONNECTED;
