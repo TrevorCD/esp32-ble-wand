@@ -6,11 +6,11 @@ A wand that transmits accelerometer data (captured by an STM32) to a host machin
 
 ### ESP-WROOM-32
 voltage: 3-5V
-[datasheet]()
+[datasheet](https://documentation.espressif.com/esp32-wroom-32_datasheet_en.pdf)
 
 ### STM32F446RE
 voltage: 3-5V
-[datasheet]()
+[datasheet](https://www.st.com/content/ccc/resource/technical/document/datasheet/65/cb/75/50/53/d6/48/24/DM00141306.pdf/files/DM00141306.pdf/jcr:content/translations/en.DM00141306.pdf)
 
 
 ### MPU-6500 Accelerometer
@@ -35,7 +35,7 @@ voltage: 3-5V
 Python Tui application that communicates with the ESP32 over BLE and draws the
 magic wand's movements to the screen.
 
-Run will `make app` or `python3.14 app/app.py`
+Run `make app` or `python3.14 app/app.py`
 
 ### Dependencies
 
@@ -46,6 +46,8 @@ Run will `make app` or `python3.14 app/app.py`
 * BlueZ
 
 ## ESP32
+
+Handles device-side Bluetooth Low Energy commincation.
 
 ### Dependencies
 
@@ -58,6 +60,8 @@ Run will `make app` or `python3.14 app/app.py`
 Use Arduino IDE with the ESP32 Dev Module from Espressif to compile and flash.
 
 ## STM32
+
+Handles MPU6500 set up and communication.
 
 ### Dependencies
 
