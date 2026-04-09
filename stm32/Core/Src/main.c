@@ -27,7 +27,11 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef struct vec3 {
+	float x;
+	float y;
+	float z;
+} Vec3;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -84,12 +88,11 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	INS_Vector gyro_vec;
-	INS_Vector gyro_offset = {0};
+	Vec3 gyro_vec;
+	Vec3 gyro_offset = {0};
 	uint32_t old_time = 0;;
 	uint32_t time = 0;
 	uint32_t dt = 0;
-	//INS_Vector gyro_vec;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -175,7 +178,7 @@ int main(void)
 	  }
 	  // send position vector
 	  if(HAL_UART_Transmit(&huart1, (uint8_t*)&(gyro_vec),
-						   sizeof(INS_Vector), 1000) != HAL_OK) {
+						   sizeof(Vec3), 1000) != HAL_OK) {
 		  Error_Handler();
 	  }
   }
