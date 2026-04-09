@@ -155,8 +155,8 @@ async def main():
         old_old_cursor_y = old_cursor_y
         old_cursor_x = cursor_x
         old_cursor_y = cursor_y
-        cursor_x -= (z * 0.02)
-        cursor_y -= (x * 0.01)
+        cursor_x -= (z * 0.01)
+        cursor_y -= (x * 0.005)
         # bounds check on cursor
         if cursor_x < 0:
             cursor_x = 0
