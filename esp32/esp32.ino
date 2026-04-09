@@ -22,9 +22,10 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <BLE2902.h>
 
 #define DEBUG_BLE 0
-#define DEBUG_UART1 0
+#define DEBUG_UART1 1
 
 #define READ_TIMEOUT_MS 1000
 #define CONNECT_TIMEOUT_MS 5000
@@ -37,6 +38,8 @@
 /* Globals -------------------------------------------------------------------*/
 /* Global BLE variables */
 BLEServer* g_pServer;
+BLEAdvertising* g_pAdvertising;
+BLECharacteristic* g_pCharacteristic;
 
 const char* serviceUUID = "3cd00375-4415-4fe2-aa41-42bd35f1c526";
 const char* characteristicUUID = "cc84a98c-36be-4fe1-8345-be620545fd34";
@@ -108,9 +111,6 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks {
     Serial.print("lastReadTime: ");
     Serial.println(lastReadTime);
     #endif
-
-    // set new value
-    pCharacteristic->setValue((uint8_t*)UART1_msg_buf, UART1_MSG_LEN);
   }
 };
 
@@ -137,14 +137,17 @@ void setup() {
     characteristicUUID,
     BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
   );
+  g_pCharacteristic = pCharacteristic;
+
+  pCharacteristic->addDescriptor(new BLE2902());
   pCharacteristic->setCallbacks(new CharacteristicCallbacks());
   pCharacteristic->setValue(0);
   pService->start();
+
+  g_pAdvertising = pServer->getAdvertising();
 }
 
 void loop() {
-  BLEAdvertising *pAdvertising = g_pServer->getAdvertising();
-
   #if DEBUG_BLE
   Serial.print("state: ");
   Serial.println(g_state);
@@ -163,6 +166,12 @@ void loop() {
       float* z = (float*)(UART1_msg_buf + (sizeof(float) * 2));
       Serial.printf("x: %f\ny: %f\nz: %f\n\n", *x, *y, *z);
       #endif
+      // set new value and notify host app
+      g_pCharacteristic->setValue((uint8_t*)UART1_msg_buf, UART1_MSG_LEN);
+      g_pCharacteristic->notify();
+      #if DEBUG_UART1
+      Serial.print("Notified\n");
+      #endif
     }
     else {
       Serial1.read(); // discard misaligned byte
@@ -171,7 +180,7 @@ void loop() {
 
   switch(g_state) {
     case INIT:
-      pAdvertising->start();
+      g_pAdvertising->start();
       g_state = ADVERTISING;
       #if DEBUG_BLE
       Serial.println("Advertising started");
@@ -197,7 +206,7 @@ void loop() {
         }
       break;
     case DISCONNECTED:
-      pAdvertising->start();
+      g_pAdvertising->start();
       g_state = ADVERTISING;
       #if DEBUG_BLE
       Serial.println("Started advertising");

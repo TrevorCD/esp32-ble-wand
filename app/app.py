@@ -100,10 +100,24 @@ async def bluetooth_connect() -> BleakClient:
 async def main():
 
     global stdscr, client
-    
-    size = size = shutil.get_terminal_size()
 
     shutdown = False # main loop catches this and exits with ble_cleanup_exit()
+
+    x = None
+    y = None
+    z = None
+    
+    size = shutil.get_terminal_size()
+    midpoint_x = float(size.columns / 2)
+    midpoint_y = float(size.lines / 2)
+    max_x = size.columns - 2
+    max_y = size.lines - 1
+    cursor_x = None
+    cursor_y = None
+    old_cursor_x = None
+    old_cursor_y = None
+    old_old_cursor_x = None
+    old_old_cursor_y = None
     
     # restores window to default state and disconnects BLE client if connected
     async def ble_cleanup_exit():
@@ -117,17 +131,51 @@ async def main():
         exit()
     
     def resize_handler(signum, frame):
+        nonlocal size, midpoint_x, midpoint_y, max_x, max_y
         size = shutil.get_terminal_size()
+        midpoint_x = float(size.columns / 2)
+        midpoint_y = float(size.lines / 2)
+        max_x = size.columns - 2
+        max_y = size.lines - 1
         curses.resizeterm(size.lines, size.columns)
         stdscr.refresh()
 
     def sigint_handler(signum, frame):
+        nonlocal shutdown
+        shutdown = True
         if client == None:
             exit()
-
+    
+    def ble_notification_handler(sender, data):
+        nonlocal x, y, z, old_old_cursor_x, old_old_cursor_y
+        nonlocal old_cursor_x, old_cursor_y, cursor_x, cursor_y
+        x, y, z = struct.unpack('fff', data)  # 'fff' = 3 floats
+        # update cursor
+        old_old_cursor_x = old_cursor_x
+        old_old_cursor_y = old_cursor_y
+        old_cursor_x = cursor_x
+        old_cursor_y = cursor_y
+        cursor_x -= (z * 0.02)
+        cursor_y -= (x * 0.01)
+        # bounds check on cursor
+        if cursor_x < 0:
+            cursor_x = 0
+        if cursor_x > max_x:
+            cursor_x = max_x
+        if cursor_y < 0:
+            cursor_y = 0;
+        if cursor_y > max_y:
+            cursor_y = max_y
+        # update screen
+        stdscr.addch(int(old_old_cursor_y), int(old_old_cursor_x), ' ')
+        stdscr.addch(int(old_cursor_y), int(old_cursor_x), 'o')
+        stdscr.addch(int(midpoint_y), int(midpoint_x), midpoint_char)
+        stdscr.addch(int(cursor_y), int(cursor_x), cursor_char, curses.A_BOLD)
+        stdscr.refresh()
+        
     # set signal handlers
     signal.signal(signal.SIGINT, sigint_handler)
-
+    
     # Bluetooth low energy setup
     client = await bluetooth_connect()
     if client == None:
@@ -144,12 +192,8 @@ async def main():
     stdscr.nodelay(True) # makes getch() non-blocking
     stdscr.keypad(True)
     curses.curs_set(0) # make terminal cursor invisible
-
-    size = shutil.get_terminal_size()
-    midpoint_x = float(size.columns / 2)
-    midpoint_y = float(size.lines / 2)
-    max_x = size.columns - 2
-    max_y = size.lines - 1
+    
+    # cursor initialization
     cursor_x = midpoint_x
     cursor_y = midpoint_y
     old_cursor_x = cursor_x
@@ -158,37 +202,18 @@ async def main():
     old_old_cursor_y = cursor_y
     cursor_char = 'O'
     midpoint_char = '•' # bullet 0d149
-    # loop for catching bluetooth communication and updating screen
+
+    # start catching BLE notifications
+    try:
+        await client.start_notify(characteristic_uuid, ble_notification_handler)
+    except:
+        print("Failed to subscribe to notifications")
+        await ble_cleanup_exit()
+    # loop for catching input
     while True:
-        # bluetooth comm
-        position_vec = await client.read_gatt_char(characteristic_uuid)
-        x, y, z = struct.unpack('fff', position_vec)  # 'fff' = 3 floats
-
-        # update cursor
-        old_old_cursor_x = old_cursor_x
-        old_old_cursor_y = old_cursor_y
-        old_cursor_x = cursor_x
-        old_cursor_y = cursor_y
-        cursor_x -= (z * 0.02)
-        cursor_y -= (x * 0.01)
-
-        # bounds check on cursor
-        if cursor_x < 0:
-            cursor_x = 0
-        if cursor_x > max_x:
-            cursor_x = max_x
-        if cursor_y < 0:
-            cursor_y = 0;
-        if cursor_y > max_y:
-            cursor_y = max_y
-        
-        # update screen
-        stdscr.addch(int(old_old_cursor_y), int(old_old_cursor_x), ' ')
-        stdscr.addch(int(old_cursor_y), int(old_cursor_x), 'o')
-        stdscr.addch(int(midpoint_y), int(midpoint_x), midpoint_char)
-        stdscr.addch(int(cursor_y), int(cursor_x), cursor_char, curses.A_BOLD)
-        stdscr.refresh()
-
+        if shutdown == True:
+            await ble_cleanup_exit()
+        await asyncio.sleep(0.01)  # yield control to asyncio
         key = stdscr.getch()
         match key:
             case 113: # 'q' -> quit
