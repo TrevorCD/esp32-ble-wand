@@ -58,8 +58,7 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c \
 Drivers/MPU6500/mpu6500.c \
 Core/Src/system_stm32f4xx.c \
 Core/Src/sysmem.c \
-Core/Src/syscalls.c \
-Ins/ins.c
+Core/Src/syscalls.c
 
 # ASM sources
 ASM_SOURCES =  \
@@ -127,8 +126,7 @@ C_INCLUDES =  \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include \
--IDrivers/MPU6500 \
--IIns
+-IDrivers/MPU6500 
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
