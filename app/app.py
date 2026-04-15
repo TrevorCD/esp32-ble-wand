@@ -25,6 +25,7 @@ import shutil   # shell utilities
 import signal   # signal catching
 import curses   # terminal printing
 import struct
+import time
 
 # Globals ----------------------------------------------------------------------
 stdscr = None
@@ -119,6 +120,8 @@ async def main():
     cursor_y = None
     old_cursor_x = None
     old_cursor_y = None
+
+    time_ms = 0
     
     # restores window to default state and disconnects BLE client if connected
     async def ble_cleanup_exit():
@@ -150,6 +153,7 @@ async def main():
     def ble_notification_handler(sender, data):
         nonlocal x, y, z
         nonlocal old_cursor_x, old_cursor_y, cursor_x, cursor_y
+        nonlocal time_ms
         x, y, z = struct.unpack('fff', data)  # 'fff' = 3 floats
         # update cursor
         old_cursor_x = cursor_x
@@ -165,7 +169,13 @@ async def main():
             cursor_y = 0;
         if cursor_y > max_y:
             cursor_y = max_y
+        # update time
+        new_time_ms = time.time_ns() // 1_000_000
+        diff_time_ms = new_time_ms - time_ms
+        time_ms = new_time_ms
         # update screen
+        stdscr.addstr(0, 0, "          ")
+        stdscr.addstr(0, 0, str(diff_time_ms))
         stdscr.addch(int(old_cursor_y), int(old_cursor_x), ' ')
         stdscr.addch(int(midpoint_y), int(midpoint_x), midpoint_char)
         stdscr.addch(int(cursor_y), int(cursor_x), cursor_char, curses.A_BOLD)
@@ -197,6 +207,8 @@ async def main():
     old_cursor_x = cursor_x
     old_cursor_y = cursor_y
 
+    time_ms = time.time_ns() // 1_000_000
+    
     # start catching BLE notifications
     try:
         await client.start_notify(characteristic_uuid, ble_notification_handler)
