@@ -51,8 +51,8 @@ UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-MPU6500_HandleTypeDef hmpu = {0};
-MPU6500_OutputTypeDef mpu_out = {0};
+MPU6500_handle_t hmpu = {0};
+MPU6500_output_t mpu_out = {0};
 //INS_Position pos = {0};
 // debug variables
 int _loops = 0;
@@ -117,11 +117,11 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  hmpu.hi2c = &hi2c1;
+  
   // initialize device
-  if(MPU6500_Init(&hmpu) != 0) Error_Handler();
+  if(MPU6500_Init_I2C(&hmpu, &hi2c1, MPU6500_ADDR_LOW) != 0) Error_Handler();
   // set sample rate div to low frequency (1kHz/17)
-  if(MPU6500_SetSampleRateDiv(&hmpu, 16) != 0) Error_Handler();
+  if(MPU6500_SetSampleRateDiv(&hmpu, 10) != 0) Error_Handler();
   /* Enable raw data ready interrupts */
   if(MPU6500_EnableInterrupts(&hmpu) != 0) Error_Handler();
   
